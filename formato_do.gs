@@ -29,7 +29,7 @@ function copiarDadosPorArea() {
     var cargo = dados[i][indices[0]];
     var areaIndex = cabecalho.indexOf("ÁREA");
     var area = areaIndex !== -1 ? dados[i][areaIndex] : "";
-    var nomeCompleto = dados[i][indices[1]].replace(/[^A-Z\s]/gi, "").trim().toUpperCase();
+    var nomeCompleto = String[i][indices[1]].replace(/[^A-Z\s]/gi, "").trim().toUpperCase();
     var cotaNegros = dados[i][indices[2]] === "SIM" ? "*" : "";
     var cotaPCD = dados[i][indices[3]] === "SIM" ? "**" : "";
     var totalPontuacao = dados[i][indices[4]];
