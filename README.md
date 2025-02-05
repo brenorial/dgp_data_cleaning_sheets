@@ -1,79 +1,114 @@
-## Explicação do Código `processarPlanilha()`
 
-Esse código é uma função que processa dados de uma planilha no Google Sheets e cria novas abas para cada vaga encontrada, copiando as linhas correspondentes para essas abas. Abaixo está o detalhamento de cada parte do código:
+# Explicação do Código `copiarDadosPorArea`
 
-### 1. Acessando a Planilha Ativa e a Aba "BASE"
-```javascript
-var ss = SpreadsheetApp.getActiveSpreadsheet();
-var baseSheet = ss.getSheetByName('BASE');
-var data = baseSheet.getDataRange().getValues();
-```
-- **`ss`**: Obtém a planilha ativa no Google Sheets.
-- **`baseSheet`**: Acessa a aba chamada "BASE" da planilha ativa.
-- **`data`**: Obtém todos os dados da aba "BASE", incluindo cabeçalhos e valores, e armazena em um array de duas dimensões.
-
-### 2. Definindo a Variável `novaLinha`
-```javascript
-var novaLinha;
-```
-- **`novaLinha`**: A variável será utilizada para armazenar a linha em que as novas informações serão inseridas nas abas criadas para cada "vaga".
-
-### 3. Iterando sobre os Dados da Aba "BASE"
-```javascript
-for (var i = 0; i < data.length; i++) {
-```
-- Este laço percorre todas as linhas da aba "BASE". O objetivo é verificar se a célula da coluna 1 (primeira coluna) contém um texto que começa com "Vaga:".
-
-### 4. Verificando se a Linha Contém uma Vaga
-```javascript
-if (data[i][0] && data[i][0].toString().startsWith("Vaga:")) {
-  var nomeVaga = data[i][0].toString().split(":")[1].trim();
-```
-- Verifica se a primeira célula da linha contém um texto que começa com "Vaga:".
-- **`nomeVaga`**: Extrai o nome da vaga a partir do texto que segue após "Vaga:". Isso é feito dividindo a string e pegando a parte após os dois pontos.
-
-### 5. Criando ou Limpar uma Aba para a Vaga
-```javascript
-var novaAba = ss.getSheetByName(nomeVaga);
-if (!novaAba) {
-  novaAba = ss.insertSheet(nomeVaga);
-} else {
-  novaAba.clear();
-}
-```
-- **`novaAba`**: Tenta obter uma aba com o nome da vaga.
-- Se a aba não existir, ela é criada usando **`insertSheet`**.
-- Se a aba já existir, ela é limpa com **`clear`** para garantir que ela começará com dados novos.
-
-### 6. Processando as Linhas Correspondentes à Vaga
-```javascript
-novaLinha = 1;
-
-for (var j = i + 1; j < data.length; j++) {
-  if (!data[j][0]) {
-    continue;
-  }
-
-  if (data[j][0].toString().startsWith("Vaga:")) {
-    break;
-  }
-
-  novaAba.getRange(novaLinha, 1, 1, data[j].length).setValues([data[j]]);
-  novaLinha++;
-}
-```
-- **`novaLinha`**: Inicializa a linha de inserção como 1 (primeira linha da nova aba).
-- **`for (var j = i + 1; j < data.length; j++)`**: Itera pelas linhas seguintes à vaga encontrada, copiando os dados até encontrar outra vaga ou uma linha vazia.
-- **`if (!data[j][0])`**: Se a célula da coluna 1 estiver vazia, a linha é ignorada.
-- **`if (data[j][0].toString().startsWith("Vaga:"))`**: Se a célula da coluna 1 começar com "Vaga:", a iteração é interrompida (indica o início de uma nova vaga).
-- **`novaAba.getRange(novaLinha, 1, 1, data[j].length).setValues([data[j]])`**: Copia os dados da linha para a nova aba na linha atual indicada por **`novaLinha`**.
-- **`novaLinha++`**: Avança a linha para a próxima linha da aba.
-
-### 7. Finalizando o Processo
-- O processo continua até todas as linhas da aba "BASE" serem verificadas e processadas. Cada vaga encontrada terá sua própria aba criada (ou limpa) e as linhas correspondentes a essa vaga serão copiadas para a nova aba.
+Este script do Google Apps Script copia e organiza os dados de uma planilha chamada `"teste"`, criando novas abas para cada tipo de cargo, onde os dados são filtrados, processados e formatados.
 
 ---
 
-### Resumo do Funcionamento
-Essa função automatiza a organização dos dados da planilha, criando uma nova aba para cada "vaga" encontrada e copiando as linhas seguintes (até encontrar uma nova vaga ou uma linha vazia) para essas abas. Isso ajuda a segmentar os dados de acordo com as vagas e facilita a análise separada por área ou tipo de vaga.
+## 📌 **Passo a Passo do Código**
 
+### 1️⃣ **Obter a Planilha e a Aba de Origem**
+```javascript
+var ss = SpreadsheetApp.getActiveSpreadsheet();
+var origem = ss.getSheetByName("teste");
+```
+- Obtém a planilha ativa.
+- Tenta acessar a aba chamada `"teste"`.
+- Se a aba não for encontrada, registra um erro no Logger e interrompe a execução.
+
+### 2️⃣ **Definir as Colunas a Serem Copiadas**
+```javascript
+var colunas = ["CARGO", "NOME COMPLETO", "PPI", "PCD", "TOTAL PONTUAÇÃO"];
+```
+- Lista os nomes das colunas que serão extraídas da planilha original.
+
+### 3️⃣ **Identificar os Índices das Colunas**
+```javascript
+var cabecalho = origem.getDataRange().getValues()[0];
+var indices = [
+  cabecalho.indexOf("CARGO"),
+  cabecalho.indexOf("NOME COMPLETO:"),
+  cabecalho.indexOf("[COTA] DESEJA CONCORRER ÀS VAGAS DESTINADAS A CANDIDATOS NEGROS E INDÍGENAS, CONFORME O ITEM 4 DA RESERVA DAS VAGAS PARA NEGROS E INDÍGENAS DO EDITAL?"),
+  cabecalho.indexOf("[COTA] DESEJA CONCORRER ÀS VAGAS DESTINADAS ÀS PESSOAS COM DEFICIÊNCIA(PCD), CONFORME O ITEM 5 DO EDITAL?"),
+  cabecalho.indexOf("TOTAL_PONTUAÇÃO")
+].filter(i => i !== -1);
+```
+- Localiza os índices das colunas dentro do cabeçalho.
+- Filtra para garantir que apenas índices válidos sejam utilizados.
+
+```javascript
+var areaIndex = cabecalho.indexOf("ÁREA");
+if (indices.length !== colunas.length || areaIndex === -1) {
+  Logger.log("Algumas colunas não foram encontradas.");
+  return;
+}
+```
+- Adiciona a coluna `"ÁREA"` e verifica se todas as colunas necessárias foram encontradas.
+
+### 4️⃣ **Processar os Dados**
+```javascript
+var dados = origem.getDataRange().getValues();
+var areas = {};
+```
+- Obtém todos os dados da aba `"teste"` e armazena em `dados`.
+- Cria um objeto `areas` para organizar os dados por cargo.
+
+```javascript
+for (var i = 1; i < dados.length; i++) {
+  var cargo = dados[i][indices[0]];
+  var area = dados[i][areaIndex];
+  var nomeCompleto = dados[i][indices[1]].replace(/[^A-Z\s]/gi, "").trim().toUpperCase();
+  var cotaNegros = dados[i][indices[2]] === "SIM" ? "*" : "";
+  var cotaPCD = dados[i][indices[3]] === "SIM" ? "**" : "";
+  var totalPontuacao = dados[i][indices[4]];
+```
+- Remove números e caracteres especiais do nome e o transforma em maiúsculas.
+- Adiciona `*` para candidatos PPI e `**` para PCD.
+
+```javascript
+if (!areas[cargo]) areas[cargo] = [];
+areas[cargo].push([cargo, nomeCompleto, cotaNegros, cotaPCD, totalPontuacao]);
+```
+- Armazena os dados no objeto `areas`, organizando-os por cargo.
+
+### 5️⃣ **Criar e Preencher as Novas Abas**
+```javascript
+for (var cargo in areas) {
+  areas[cargo].sort((a, b) => a[1].localeCompare(b[1])); // Ordenar por nome completo
+  var abaNome = "DO - " + cargo;
+  var destino = ss.getSheetByName(abaNome) || ss.insertSheet(abaNome);
+  destino.clear();
+```
+- Para cada cargo encontrado, cria uma nova aba (ou reutiliza uma existente).
+- Ordena os dados pelo nome completo.
+
+```javascript
+destino.getRange("A1:E1").merge().setValue("CARGO: " + cargo)
+  .setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
+destino.getRange("A2:E2").merge().setValue("Área de Atuação - " + (dados.find(row => row[cabecalho.indexOf("CARGO")] === cargo) ? dados.find(row => row[cabecalho.indexOf("CARGO")] === cargo)[areaIndex] : "Não informada"))
+  .setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
+```
+- Mescla as células `A1:E1` e `A2:E2` para exibir o nome do cargo e a área de atuação.
+- Centraliza e aplica bordas.
+
+```javascript
+var headerRange = destino.getRange(3, 1, 1, colunas.length);
+headerRange.setValues([colunas]);
+headerRange.setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
+```
+- Adiciona o cabeçalho e aplica formatação.
+
+```javascript
+var dataRange = destino.getRange(4, 1, areas[cargo].length, colunas.length);
+dataRange.setValues(areas[cargo]);
+dataRange.setHorizontalAlignment("center").setBorder(true, true, true, true, true, true);
+```
+- Insere os dados e aplica a formatação de alinhamento centralizado e bordas.
+
+---
+
+## 🔍 **Resumo das Melhorias**
+✔ Nomes formatados para maiúsculas, removendo números e caracteres especiais.  
+✔ Ordenação dos nomes em cada aba.  
+✔ Mesclagem e centralização de títulos nas novas abas.  
+✔ Aplicação de bordas em todas as células.  
