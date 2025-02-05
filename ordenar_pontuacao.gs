@@ -4,7 +4,7 @@ function ordenarAbasDO() {
   
   abas.forEach(sheet => {
     var data = sheet.getDataRange().getValues();
-    if (data.length < 4) return; // Verifica se há dados suficientes
+    if (data.length < 1) return; // Verifica se há dados suficientes
     
     var header = data[2]; // Cabeçalho na linha 3
     var pontuacaoIndex = header.indexOf("PONTUAÇÃO");
